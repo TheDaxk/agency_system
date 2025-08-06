@@ -1,0 +1,769 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios - Sistema de Gestão{% endblock %}
+{% block page_title %}Relatórios{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#financialReportModal">
+        <i class="bi bi-graph-up"></i>
+        Relatório Financeiro
+    </button>
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#clientReportModal">
+        <i class="bi bi-people"></i>
+        Relatório de Cliente
+    </button>
+    <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#projectReportModal">
+        <i class="bi bi-kanban"></i>
+        Relatório de Projeto
+    </button>
+    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#invoiceModal">
+        <i class="bi bi-receipt"></i>
+        Gerar Fatura
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Cards de Relatórios Rápidos -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Relatório Financeiro
+                        </div>
+                        <div class="text-xs text-gray-800">
+                            Receitas, despesas e lucros
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-primary btn-sm" onclick="generateQuickFinancialReport()">
+                            <i class="bi bi-download"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Resumo de Clientes
+                        </div>
+                        <div class="text-xs text-gray-800">
+                            Projetos e faturamento
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-success btn-sm" onclick="generateAllClientsReport()">
+                            <i class="bi bi-download"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Projetos Ativos
+                        </div>
+                        <div class="text-xs text-gray-800">
+                            Status e progresso
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-info btn-sm" onclick="generateActiveProjectsReport()">
+                            <i class="bi bi-download"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Resumo Executivo
+                        </div>
+                        <div class="text-xs text-gray-800">
+                            Dashboard completo
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-warning btn-sm" onclick="generateExecutiveSummary()">
+                            <i class="bi bi-download"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Histórico de Relatórios -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Histórico de Relatórios</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                        <th>Gerado por</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="reports-history-body">
+                    <tr>
+                        <td colspan="6" class="text-center">Carregando...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Relatório Financeiro -->
+<div class="modal fade" id="financialReportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-graph-up"></i>
+                    Gerar Relatório Financeiro
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="financialReportForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="financialStartDate" class="form-label">Data Inicial *</label>
+                            <input type="date" class="form-control" id="financialStartDate" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="financialEndDate" class="form-label">Data Final *</label>
+                            <input type="date" class="form-control" id="financialEndDate" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Incluir:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeIncome" checked>
+                            <label class="form-check-label" for="includeIncome">
+                                Receitas
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeExpenses" checked>
+                            <label class="form-check-label" for="includeExpenses">
+                                Despesas
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeCategories" checked>
+                            <label class="form-check-label" for="includeCategories">
+                                Análise por categorias
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="generateFinancialReport()">
+                    <i class="bi bi-download"></i>
+                    Gerar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Relatório de Cliente -->
+<div class="modal fade" id="clientReportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-people"></i>
+                    Gerar Relatório de Cliente
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="clientReportForm">
+                    <div class="mb-3">
+                        <label for="clientSelect" class="form-label">Cliente *</label>
+                        <select class="form-select" id="clientSelect" required>
+                            <option value="">Selecione um cliente</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Incluir:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeProjects" checked>
+                            <label class="form-check-label" for="includeProjects">
+                                Projetos
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeFinancials" checked>
+                            <label class="form-check-label" for="includeFinancials">
+                                Dados financeiros
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeServices" checked>
+                            <label class="form-check-label" for="includeServices">
+                                Serviços prestados
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="generateClientReport()">
+                    <i class="bi bi-download"></i>
+                    Gerar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Relatório de Projeto -->
+<div class="modal fade" id="projectReportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-kanban"></i>
+                    Gerar Relatório de Projeto
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="projectReportForm">
+                    <div class="mb-3">
+                        <label for="projectSelect" class="form-label">Projeto *</label>
+                        <select class="form-select" id="projectSelect" required>
+                            <option value="">Selecione um projeto</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Incluir:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeProjectDetails" checked>
+                            <label class="form-check-label" for="includeProjectDetails">
+                                Detalhes do projeto
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeProjectServices" checked>
+                            <label class="form-check-label" for="includeProjectServices">
+                                Serviços/Tarefas
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeTimeline" checked>
+                            <label class="form-check-label" for="includeTimeline">
+                                Timeline
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-info" onclick="generateProjectReport()">
+                    <i class="bi bi-download"></i>
+                    Gerar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Fatura -->
+<div class="modal fade" id="invoiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-receipt"></i>
+                    Gerar Fatura/Orçamento
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="invoiceForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="invoiceClient" class="form-label">Cliente *</label>
+                            <select class="form-select" id="invoiceClient" required>
+                                <option value="">Selecione um cliente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="invoiceProject" class="form-label">Projeto *</label>
+                            <select class="form-select" id="invoiceProject" required>
+                                <option value="">Selecione um projeto</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="invoiceType" class="form-label">Tipo *</label>
+                            <select class="form-select" id="invoiceType" required>
+                                <option value="invoice">Fatura</option>
+                                <option value="quote">Orçamento</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="invoiceNumber" class="form-label">Número</label>
+                            <input type="text" class="form-control" id="invoiceNumber" placeholder="Auto">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="invoiceDueDate" class="form-label">Vencimento</label>
+                            <input type="date" class="form-control" id="invoiceDueDate">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="invoiceDiscount" class="form-label">Desconto (R$)</label>
+                            <input type="number" class="form-control" id="invoiceDiscount" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="invoiceTax" class="form-label">Impostos (R$)</label>
+                            <input type="number" class="form-control" id="invoiceTax" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="invoiceStatus" class="form-label">Status</label>
+                            <select class="form-select" id="invoiceStatus">
+                                <option value="pending">Pendente</option>
+                                <option value="sent">Enviado</option>
+                                <option value="paid">Pago</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="invoiceNotes" class="form-label">Observações</label>
+                        <textarea class="form-control" id="invoiceNotes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" onclick="generateInvoice()">
+                    <i class="bi bi-download"></i>
+                    Gerar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let clients = [];
+let projects = [];
+
+// Carregar dados iniciais
+async function loadInitialData() {
+    await Promise.all([
+        loadClients(),
+        loadProjects(),
+        loadReportsHistory()
+    ]);
+}
+
+// Carregar clientes
+async function loadClients() {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch('/api/clients/', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            clients = await response.json();
+            updateClientSelects();
+        }
+    } catch (error) {
+        console.error('Erro ao carregar clientes:', error);
+    }
+}
+
+// Carregar projetos
+async function loadProjects() {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch('/api/projects/', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            projects = await response.json();
+            updateProjectSelects();
+        }
+    } catch (error) {
+        console.error('Erro ao carregar projetos:', error);
+    }
+}
+
+// Atualizar selects de clientes
+function updateClientSelects() {
+    const clientSelects = ['clientSelect', 'invoiceClient'];
+    
+    clientSelects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            const options = clients.map(client => 
+                `<option value="${client.id}">${client.name}</option>`
+            ).join('');
+            
+            select.innerHTML = '<option value="">Selecione um cliente</option>' + options;
+        }
+    });
+}
+
+// Atualizar selects de projetos
+function updateProjectSelects() {
+    const projectSelects = ['projectSelect', 'invoiceProject'];
+    
+    projectSelects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            const options = projects.map(project => 
+                `<option value="${project.id}">${project.title}</option>`
+            ).join('');
+            
+            select.innerHTML = '<option value="">Selecione um projeto</option>' + options;
+        }
+    });
+}
+
+// Carregar histórico de relatórios
+async function loadReportsHistory() {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch('/api/reports/', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            const reports = await response.json();
+            renderReportsHistory(reports);
+        }
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
+        document.getElementById('reports-history-body').innerHTML = 
+            '<tr><td colspan="6" class="text-center">Erro ao carregar histórico</td></tr>';
+    }
+}
+
+// Renderizar histórico de relatórios
+function renderReportsHistory(reports) {
+    const tbody = document.getElementById('reports-history-body');
+    
+    if (reports.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum relatório encontrado</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = reports.map(report => `
+        <tr>
+            <td>${new Date(report.created_at).toLocaleDateString('pt-BR')}</td>
+            <td>Relatório Personalizado</td>
+            <td>Valor total: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(report.total_value)}</td>
+            <td>Sistema</td>
+            <td><span class="badge bg-success">Concluído</span></td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="viewReport('${report.id}')" title="Visualizar">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Gerar relatório financeiro
+async function generateFinancialReport() {
+    const startDate = document.getElementById('financialStartDate').value;
+    const endDate = document.getElementById('financialEndDate').value;
+    
+    if (!startDate || !endDate) {
+        showAlert('Por favor, selecione as datas', 'warning');
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('access_token');
+        const url = `/api/reports/financial?start_date=${startDate}&end_date=${endDate}`;
+        
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `relatorio_financeiro_${startDate}_${endDate}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(downloadUrl);
+            
+            bootstrap.Modal.getInstance(document.getElementById('financialReportModal')).hide();
+            showAlert('Relatório gerado com sucesso!', 'success');
+        } else {
+            showAlert('Erro ao gerar relatório', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao gerar relatório:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Gerar relatório de cliente
+async function generateClientReport() {
+    const clientId = document.getElementById('clientSelect').value;
+    
+    if (!clientId) {
+        showAlert('Por favor, selecione um cliente', 'warning');
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`/api/reports/client/${clientId}`, {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `relatorio_cliente_${clientId}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(downloadUrl);
+            
+            bootstrap.Modal.getInstance(document.getElementById('clientReportModal')).hide();
+            showAlert('Relatório gerado com sucesso!', 'success');
+        } else {
+            showAlert('Erro ao gerar relatório', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao gerar relatório:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Gerar relatório de projeto
+async function generateProjectReport() {
+    const projectId = document.getElementById('projectSelect').value;
+    
+    if (!projectId) {
+        showAlert('Por favor, selecione um projeto', 'warning');
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`/api/reports/project/${projectId}`, {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `relatorio_projeto_${projectId}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(downloadUrl);
+            
+            bootstrap.Modal.getInstance(document.getElementById('projectReportModal')).hide();
+            showAlert('Relatório gerado com sucesso!', 'success');
+        } else {
+            showAlert('Erro ao gerar relatório', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao gerar relatório:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Gerar fatura
+async function generateInvoice() {
+    const clientId = document.getElementById('invoiceClient').value;
+    const projectId = document.getElementById('invoiceProject').value;
+    
+    if (!clientId || !projectId) {
+        showAlert('Por favor, selecione cliente e projeto', 'warning');
+        return;
+    }
+    
+    const invoiceData = {
+        client_id: clientId,
+        project_id: projectId,
+        type: document.getElementById('invoiceType').value,
+        number: document.getElementById('invoiceNumber').value || `INV-${Date.now()}`,
+        date: new Date().toISOString().split('T')[0],
+        due_date: document.getElementById('invoiceDueDate').value,
+        discount: parseFloat(document.getElementById('invoiceDiscount').value) || 0,
+        tax: parseFloat(document.getElementById('invoiceTax').value) || 0,
+        status: document.getElementById('invoiceStatus').value,
+        notes: document.getElementById('invoiceNotes').value
+    };
+    
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch('/api/reports/invoice', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(invoiceData)
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `${invoiceData.type}_${invoiceData.number}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(downloadUrl);
+            
+            bootstrap.Modal.getInstance(document.getElementById('invoiceModal')).hide();
+            showAlert('Fatura gerada com sucesso!', 'success');
+        } else {
+            showAlert('Erro ao gerar fatura', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao gerar fatura:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Relatórios rápidos
+async function generateQuickFinancialReport() {
+    const endDate = new Date().toISOString().split('T')[0];
+    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    document.getElementById('financialStartDate').value = startDate;
+    document.getElementById('financialEndDate').value = endDate;
+    
+    await generateFinancialReport();
+}
+
+async function generateAllClientsReport() {
+    showAlert('Funcionalidade em desenvolvimento', 'info');
+}
+
+async function generateActiveProjectsReport() {
+    showAlert('Funcionalidade em desenvolvimento', 'info');
+}
+
+async function generateExecutiveSummary() {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch('/api/reports/financial', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `resumo_executivo_${new Date().toISOString().split('T')[0]}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(downloadUrl);
+            
+            showAlert('Resumo executivo gerado com sucesso!', 'success');
+        } else {
+            showAlert('Erro ao gerar resumo', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao gerar resumo:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Visualizar relatório
+function viewReport(reportId) {
+    showAlert('Funcionalidade de visualização em desenvolvimento', 'info');
+}
+
+// Definir datas padrão
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    const lastMonth = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    document.getElementById('financialStartDate').value = lastMonth;
+    document.getElementById('financialEndDate').value = today;
+    document.getElementById('invoiceDueDate').value = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    loadInitialData();
+});
+</script>
+{% endblock %}
+

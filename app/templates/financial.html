@@ -1,0 +1,882 @@
+{% extends "base.html" %}
+
+{% block title %}Financeiro - Sistema de Gestão{% endblock %}
+{% block page_title %}Financeiro{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#financialModal" onclick="openFinancialModal('income')">
+        <i class="bi bi-plus-circle"></i>
+        Nova Receita
+    </button>
+    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#financialModal" onclick="openFinancialModal('expense')">
+        <i class="bi bi-dash-circle"></i>
+        Nova Despesa
+    </button>
+    <button type="button" class="btn btn-outline-primary" onclick="exportFinancialData()">
+        <i class="bi bi-download"></i>
+        Exportar
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Resumo Financeiro -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Total de Receitas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-income">
+                            R$ 0,00
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-arrow-up-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            Total de Despesas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-expenses">
+                            R$ 0,00
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-arrow-down-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Saldo Atual
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="current-balance">
+                            R$ 0,00
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-wallet2 fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Margem de Lucro
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="profit-margin">
+                            0%
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-percent fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <label for="dateFrom" class="form-label">Data Inicial</label>
+        <input type="date" class="form-control" id="dateFrom">
+    </div>
+    <div class="col-md-3">
+        <label for="dateTo" class="form-label">Data Final</label>
+        <input type="date" class="form-control" id="dateTo">
+    </div>
+    <div class="col-md-2">
+        <label for="typeFilter" class="form-label">Tipo</label>
+        <select class="form-select" id="typeFilter">
+            <option value="">Todos</option>
+            <option value="income">Receitas</option>
+            <option value="expense">Despesas</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label for="categoryFilter" class="form-label">Categoria</label>
+        <select class="form-select" id="categoryFilter">
+            <option value="">Todas</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">&nbsp;</label>
+        <button type="button" class="btn btn-primary d-block w-100" onclick="applyFilters()">
+            <i class="bi bi-funnel"></i>
+            Filtrar
+        </button>
+    </div>
+</div>
+
+<!-- Gráficos -->
+<div class="row mb-4">
+    <div class="col-xl-8 col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Fluxo de Caixa (12 meses)</h6>
+                <div class="dropdown no-arrow">
+                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots-vertical text-gray-400"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right shadow">
+                        <a class="dropdown-item" href="#" onclick="changeChartPeriod('6')">Últimos 6 meses</a>
+                        <a class="dropdown-item" href="#" onclick="changeChartPeriod('12')">Últimos 12 meses</a>
+                        <a class="dropdown-item" href="#" onclick="changeChartPeriod('24')">Últimos 24 meses</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-area">
+                    <canvas id="cashFlowChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-lg-5">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Despesas por Categoria</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie pt-4 pb-2">
+                    <canvas id="expensesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de Transações -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Transações Recentes</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th>Categoria</th>
+                        <th>Tipo</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="transactions-table-body">
+                    <tr>
+                        <td colspan="7" class="text-center">Carregando...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Paginação -->
+        <nav aria-label="Paginação de transações">
+            <ul class="pagination justify-content-center" id="pagination">
+                <!-- Paginação será inserida aqui -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Modal de Transação Financeira -->
+<div class="modal fade" id="financialModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="financialModalTitle">
+                    <i class="bi bi-plus-circle"></i>
+                    Nova Transação
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="financialForm">
+                    <input type="hidden" id="transactionId" name="id">
+                    <input type="hidden" id="transactionType" name="type">
+                    
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="description" class="form-label">Descrição *</label>
+                            <input type="text" class="form-control" id="description" name="description" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="amount" class="form-label">Valor (R$) *</label>
+                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="category" class="form-label">Categoria *</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <!-- Opções serão preenchidas dinamicamente -->
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="date" class="form-label">Data *</label>
+                            <input type="date" class="form-control" id="date" name="date" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="pending">Pendente</option>
+                                <option value="completed">Concluído</option>
+                                <option value="cancelled">Cancelado</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="paymentMethod" class="form-label">Método de Pagamento</label>
+                            <select class="form-select" id="paymentMethod" name="payment_method">
+                                <option value="">Selecione</option>
+                                <option value="cash">Dinheiro</option>
+                                <option value="credit_card">Cartão de Crédito</option>
+                                <option value="debit_card">Cartão de Débito</option>
+                                <option value="bank_transfer">Transferência Bancária</option>
+                                <option value="pix">PIX</option>
+                                <option value="check">Cheque</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="clientId" class="form-label">Cliente (se aplicável)</label>
+                            <select class="form-select" id="clientId" name="client_id">
+                                <option value="">Selecione um cliente</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Observações</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="recurring" name="recurring">
+                                <label class="form-check-label" for="recurring">
+                                    Transação recorrente
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3" id="recurring-options" style="display: none;">
+                            <label for="recurringFrequency" class="form-label">Frequência</label>
+                            <select class="form-select" id="recurringFrequency" name="recurring_frequency">
+                                <option value="monthly">Mensal</option>
+                                <option value="quarterly">Trimestral</option>
+                                <option value="yearly">Anual</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveTransaction()">
+                    <i class="bi bi-check-circle"></i>
+                    Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let transactions = [];
+let clients = [];
+let cashFlowChart, expensesChart;
+let currentPage = 1;
+let itemsPerPage = 10;
+
+// Categorias padrão
+const incomeCategories = [
+    'Serviços de Design',
+    'Desenvolvimento Web',
+    'Marketing Digital',
+    'Consultoria',
+    'Manutenção',
+    'Outros'
+];
+
+const expenseCategories = [
+    'Salários',
+    'Aluguel',
+    'Energia Elétrica',
+    'Internet',
+    'Software/Licenças',
+    'Marketing',
+    'Equipamentos',
+    'Viagem',
+    'Alimentação',
+    'Outros'
+];
+
+// Carregar dados iniciais
+async function loadInitialData() {
+    await Promise.all([
+        loadTransactions(),
+        loadClients()
+    ]);
+    updateSummary();
+    loadCharts();
+}
+
+// Carregar transações
+async function loadTransactions() {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch('/api/financial/', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            transactions = await response.json();
+            renderTransactions();
+        } else if (response.status === 401) {
+            window.location.href = '/login';
+        } else {
+            showAlert('Erro ao carregar transações', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao carregar transações:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Carregar clientes
+async function loadClients() {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch('/api/clients/', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            clients = await response.json();
+            updateClientSelect();
+        }
+    } catch (error) {
+        console.error('Erro ao carregar clientes:', error);
+    }
+}
+
+// Atualizar select de clientes
+function updateClientSelect() {
+    const clientSelect = document.getElementById('clientId');
+    const clientOptions = clients.map(client => 
+        `<option value="${client.id}">${client.name}</option>`
+    ).join('');
+    
+    clientSelect.innerHTML = '<option value="">Selecione um cliente</option>' + clientOptions;
+}
+
+// Atualizar resumo financeiro
+function updateSummary() {
+    const income = transactions
+        .filter(t => t.type === 'income' && t.status === 'completed')
+        .reduce((sum, t) => sum + t.amount, 0);
+    
+    const expenses = transactions
+        .filter(t => t.type === 'expense' && t.status === 'completed')
+        .reduce((sum, t) => sum + t.amount, 0);
+    
+    const balance = income - expenses;
+    const margin = income > 0 ? ((balance / income) * 100) : 0;
+    
+    document.getElementById('total-income').textContent = 
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(income);
+    
+    document.getElementById('total-expenses').textContent = 
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(expenses);
+    
+    document.getElementById('current-balance').textContent = 
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(balance);
+    
+    document.getElementById('profit-margin').textContent = margin.toFixed(1) + '%';
+    
+    // Atualizar cor do saldo
+    const balanceElement = document.getElementById('current-balance');
+    balanceElement.className = balance >= 0 ? 'h5 mb-0 font-weight-bold text-success' : 'h5 mb-0 font-weight-bold text-danger';
+}
+
+// Renderizar transações
+function renderTransactions() {
+    const tbody = document.getElementById('transactions-table-body');
+    
+    if (transactions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhuma transação encontrada</td></tr>';
+        return;
+    }
+    
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageTransactions = transactions.slice(startIndex, endIndex);
+    
+    tbody.innerHTML = pageTransactions.map(transaction => {
+        const client = clients.find(c => c.id === transaction.client_id);
+        const clientName = client ? client.name : '';
+        
+        return `
+            <tr>
+                <td>${new Date(transaction.date).toLocaleDateString('pt-BR')}</td>
+                <td>
+                    ${transaction.description}
+                    ${clientName ? `<br><small class="text-muted">${clientName}</small>` : ''}
+                </td>
+                <td>${transaction.category}</td>
+                <td>
+                    <span class="badge bg-${transaction.type === 'income' ? 'success' : 'danger'}">
+                        ${transaction.type === 'income' ? 'Receita' : 'Despesa'}
+                    </span>
+                </td>
+                <td class="${transaction.type === 'income' ? 'text-success' : 'text-danger'}">
+                    ${transaction.type === 'income' ? '+' : '-'}
+                    ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}
+                </td>
+                <td>
+                    <span class="badge bg-${getStatusColor(transaction.status)}">
+                        ${getStatusText(transaction.status)}
+                    </span>
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="editTransaction('${transaction.id}')" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="deleteTransaction('${transaction.id}')" title="Excluir">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    renderPagination();
+}
+
+// Renderizar paginação
+function renderPagination() {
+    const totalPages = Math.ceil(transactions.length / itemsPerPage);
+    const pagination = document.getElementById('pagination');
+    
+    if (totalPages <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+    
+    let paginationHTML = '';
+    
+    // Botão anterior
+    paginationHTML += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Anterior</a>
+        </li>
+    `;
+    
+    // Números das páginas
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage || i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+            paginationHTML += `
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                </li>
+            `;
+        } else if (i === currentPage - 2 || i === currentPage + 2) {
+            paginationHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+        }
+    }
+    
+    // Botão próximo
+    paginationHTML += `
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage + 1})">Próximo</a>
+        </li>
+    `;
+    
+    pagination.innerHTML = paginationHTML;
+}
+
+// Mudar página
+function changePage(page) {
+    const totalPages = Math.ceil(transactions.length / itemsPerPage);
+    if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        renderTransactions();
+    }
+}
+
+// Carregar gráficos
+function loadCharts() {
+    loadCashFlowChart();
+    loadExpensesChart();
+}
+
+// Carregar gráfico de fluxo de caixa
+function loadCashFlowChart() {
+    const ctx = document.getElementById('cashFlowChart').getContext('2d');
+    
+    if (cashFlowChart) {
+        cashFlowChart.destroy();
+    }
+    
+    // Agrupar transações por mês
+    const monthlyData = {};
+    const currentDate = new Date();
+    
+    // Inicializar últimos 12 meses
+    for (let i = 11; i >= 0; i--) {
+        const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        monthlyData[key] = { income: 0, expenses: 0 };
+    }
+    
+    // Agrupar transações
+    transactions.forEach(transaction => {
+        if (transaction.status === 'completed') {
+            const date = new Date(transaction.date);
+            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            
+            if (monthlyData[key]) {
+                if (transaction.type === 'income') {
+                    monthlyData[key].income += transaction.amount;
+                } else {
+                    monthlyData[key].expenses += transaction.amount;
+                }
+            }
+        }
+    });
+    
+    const labels = Object.keys(monthlyData).map(key => {
+        const [year, month] = key.split('-');
+        return new Date(year, month - 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+    });
+    
+    const incomeData = Object.values(monthlyData).map(data => data.income);
+    const expensesData = Object.values(monthlyData).map(data => data.expenses);
+    const profitData = Object.values(monthlyData).map(data => data.income - data.expenses);
+    
+    cashFlowChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Receitas',
+                data: incomeData,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }, {
+                label: 'Despesas',
+                data: expensesData,
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                tension: 0.1
+            }, {
+                label: 'Lucro',
+                data: profitData,
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat('pt-BR', { 
+                                style: 'currency', 
+                                currency: 'BRL',
+                                minimumFractionDigits: 0
+                            }).format(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Carregar gráfico de despesas por categoria
+function loadExpensesChart() {
+    const ctx = document.getElementById('expensesChart').getContext('2d');
+    
+    if (expensesChart) {
+        expensesChart.destroy();
+    }
+    
+    // Agrupar despesas por categoria
+    const categoryData = {};
+    transactions
+        .filter(t => t.type === 'expense' && t.status === 'completed')
+        .forEach(transaction => {
+            if (!categoryData[transaction.category]) {
+                categoryData[transaction.category] = 0;
+            }
+            categoryData[transaction.category] += transaction.amount;
+        });
+    
+    const labels = Object.keys(categoryData);
+    const data = Object.values(categoryData);
+    
+    if (labels.length === 0) {
+        // Mostrar gráfico vazio
+        labels.push('Nenhuma despesa');
+        data.push(1);
+    }
+    
+    expensesChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: [
+                    '#4e73df',
+                    '#1cc88a',
+                    '#36b9cc',
+                    '#f6c23e',
+                    '#e74a3b',
+                    '#858796',
+                    '#5a5c69',
+                    '#6f42c1',
+                    '#e83e8c',
+                    '#fd7e14'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+// Abrir modal financeiro
+function openFinancialModal(type, transactionId = null) {
+    const modal = document.getElementById('financialModal');
+    const title = document.getElementById('financialModalTitle');
+    const form = document.getElementById('financialForm');
+    const categorySelect = document.getElementById('category');
+    
+    form.reset();
+    document.getElementById('transactionType').value = type;
+    
+    // Definir categorias baseadas no tipo
+    const categories = type === 'income' ? incomeCategories : expenseCategories;
+    categorySelect.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+    
+    // Definir data padrão como hoje
+    document.getElementById('date').value = new Date().toISOString().split('T')[0];
+    
+    if (transactionId) {
+        title.innerHTML = `<i class="bi bi-pencil"></i> Editar ${type === 'income' ? 'Receita' : 'Despesa'}`;
+        const transaction = transactions.find(t => t.id === transactionId);
+        if (transaction) {
+            document.getElementById('transactionId').value = transaction.id;
+            document.getElementById('description').value = transaction.description;
+            document.getElementById('amount').value = transaction.amount;
+            document.getElementById('category').value = transaction.category;
+            document.getElementById('date').value = transaction.date;
+            document.getElementById('status').value = transaction.status;
+            document.getElementById('paymentMethod').value = transaction.payment_method || '';
+            document.getElementById('clientId').value = transaction.client_id || '';
+            document.getElementById('notes').value = transaction.notes || '';
+            document.getElementById('recurring').checked = transaction.recurring || false;
+            document.getElementById('recurringFrequency').value = transaction.recurring_frequency || 'monthly';
+            
+            toggleRecurringOptions();
+        }
+    } else {
+        title.innerHTML = `<i class="bi bi-plus-circle"></i> Nova ${type === 'income' ? 'Receita' : 'Despesa'}`;
+    }
+}
+
+// Alternar opções de recorrência
+function toggleRecurringOptions() {
+    const recurring = document.getElementById('recurring').checked;
+    const recurringOptions = document.getElementById('recurring-options');
+    recurringOptions.style.display = recurring ? 'block' : 'none';
+}
+
+// Salvar transação
+async function saveTransaction() {
+    const form = document.getElementById('financialForm');
+    const formData = new FormData(form);
+    const transactionId = formData.get('id');
+    
+    const transactionData = {
+        description: formData.get('description'),
+        amount: parseFloat(formData.get('amount')),
+        type: formData.get('type'),
+        category: formData.get('category'),
+        date: formData.get('date'),
+        status: formData.get('status'),
+        payment_method: formData.get('payment_method') || null,
+        client_id: formData.get('client_id') || null,
+        notes: formData.get('notes') || null,
+        recurring: formData.get('recurring') === 'on',
+        recurring_frequency: formData.get('recurring_frequency') || null
+    };
+    
+    try {
+        const token = localStorage.getItem('access_token');
+        const url = transactionId ? `/api/financial/${transactionId}` : '/api/financial/';
+        const method = transactionId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(transactionData)
+        });
+        
+        if (response.ok) {
+            showAlert(transactionId ? 'Transação atualizada com sucesso!' : 'Transação criada com sucesso!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('financialModal')).hide();
+            loadInitialData();
+        } else {
+            const error = await response.json();
+            showAlert(error.detail || 'Erro ao salvar transação', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao salvar transação:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Editar transação
+function editTransaction(transactionId) {
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (transaction) {
+        openFinancialModal(transaction.type, transactionId);
+        new bootstrap.Modal(document.getElementById('financialModal')).show();
+    }
+}
+
+// Deletar transação
+async function deleteTransaction(transactionId) {
+    if (!confirm('Tem certeza que deseja excluir esta transação?')) {
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`/api/financial/${transactionId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            showAlert('Transação excluída com sucesso!', 'success');
+            loadInitialData();
+        } else {
+            const error = await response.json();
+            showAlert(error.detail || 'Erro ao excluir transação', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao excluir transação:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Aplicar filtros
+function applyFilters() {
+    // Implementar filtros
+    loadInitialData();
+}
+
+// Exportar dados financeiros
+function exportFinancialData() {
+    // Implementar exportação
+    showAlert('Funcionalidade de exportação em desenvolvimento', 'info');
+}
+
+// Mudar período do gráfico
+function changeChartPeriod(months) {
+    // Implementar mudança de período
+    loadCashFlowChart();
+}
+
+// Funções auxiliares
+function getStatusColor(status) {
+    const colors = {
+        'pending': 'warning',
+        'completed': 'success',
+        'cancelled': 'danger'
+    };
+    return colors[status] || 'secondary';
+}
+
+function getStatusText(status) {
+    const texts = {
+        'pending': 'Pendente',
+        'completed': 'Concluído',
+        'cancelled': 'Cancelado'
+    };
+    return texts[status] || status;
+}
+
+// Event listeners
+document.getElementById('recurring').addEventListener('change', toggleRecurringOptions);
+
+// Carregar dados quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    loadInitialData();
+});
+</script>
+{% endblock %}
+

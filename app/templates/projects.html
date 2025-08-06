@@ -1,0 +1,795 @@
+{% extends "base.html" %}
+
+{% block title %}Projetos - Sistema de Gestão{% endblock %}
+{% block page_title %}Projetos{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#projectModal" onclick="openProjectModal()">
+        <i class="bi bi-plus-circle"></i>
+        Novo Projeto
+    </button>
+    <button type="button" class="btn btn-outline-secondary" onclick="toggleView()">
+        <i class="bi bi-list-ul" id="view-icon"></i>
+        <span id="view-text">Lista</span>
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Filtros -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" placeholder="Buscar projetos..." id="searchInput">
+        </div>
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" id="statusFilter">
+            <option value="">Todos os status</option>
+            <option value="planning">Planejamento</option>
+            <option value="in_progress">Em Progresso</option>
+            <option value="review">Revisão</option>
+            <option value="completed">Concluído</option>
+            <option value="cancelled">Cancelado</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" id="priorityFilter">
+            <option value="">Todas as prioridades</option>
+            <option value="low">Baixa</option>
+            <option value="medium">Média</option>
+            <option value="high">Alta</option>
+            <option value="urgent">Urgente</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" id="clientFilter">
+            <option value="">Todos os clientes</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" id="sortBy">
+            <option value="created_at">Data de Criação</option>
+            <option value="deadline">Prazo</option>
+            <option value="priority">Prioridade</option>
+            <option value="title">Nome</option>
+        </select>
+    </div>
+</div>
+
+<!-- Kanban Board -->
+<div id="kanban-view" class="kanban-board">
+    <div class="row">
+        <div class="col-md-2">
+            <div class="kanban-column" data-status="planning">
+                <div class="kanban-header bg-secondary">
+                    <h6 class="text-white mb-0">
+                        <i class="bi bi-lightbulb"></i>
+                        Planejamento
+                        <span class="badge bg-light text-dark ms-2" id="planning-count">0</span>
+                    </h6>
+                </div>
+                <div class="kanban-cards" id="planning-cards">
+                    <!-- Cards serão inseridos aqui -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-2">
+            <div class="kanban-column" data-status="in_progress">
+                <div class="kanban-header bg-primary">
+                    <h6 class="text-white mb-0">
+                        <i class="bi bi-play-circle"></i>
+                        Em Progresso
+                        <span class="badge bg-light text-dark ms-2" id="in_progress-count">0</span>
+                    </h6>
+                </div>
+                <div class="kanban-cards" id="in_progress-cards">
+                    <!-- Cards serão inseridos aqui -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-2">
+            <div class="kanban-column" data-status="review">
+                <div class="kanban-header bg-warning">
+                    <h6 class="text-white mb-0">
+                        <i class="bi bi-eye"></i>
+                        Revisão
+                        <span class="badge bg-light text-dark ms-2" id="review-count">0</span>
+                    </h6>
+                </div>
+                <div class="kanban-cards" id="review-cards">
+                    <!-- Cards serão inseridos aqui -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-2">
+            <div class="kanban-column" data-status="completed">
+                <div class="kanban-header bg-success">
+                    <h6 class="text-white mb-0">
+                        <i class="bi bi-check-circle"></i>
+                        Concluído
+                        <span class="badge bg-light text-dark ms-2" id="completed-count">0</span>
+                    </h6>
+                </div>
+                <div class="kanban-cards" id="completed-cards">
+                    <!-- Cards serão inseridos aqui -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-2">
+            <div class="kanban-column" data-status="cancelled">
+                <div class="kanban-header bg-danger">
+                    <h6 class="text-white mb-0">
+                        <i class="bi bi-x-circle"></i>
+                        Cancelado
+                        <span class="badge bg-light text-dark ms-2" id="cancelled-count">0</span>
+                    </h6>
+                </div>
+                <div class="kanban-cards" id="cancelled-cards">
+                    <!-- Cards serão inseridos aqui -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista View -->
+<div id="list-view" class="card shadow" style="display: none;">
+    <div class="card-header">
+        <h6 class="m-0 font-weight-bold text-primary">Lista de Projetos</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Projeto</th>
+                        <th>Cliente</th>
+                        <th>Status</th>
+                        <th>Prioridade</th>
+                        <th>Prazo</th>
+                        <th>Valor</th>
+                        <th>Progresso</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="projects-table-body">
+                    <tr>
+                        <td colspan="8" class="text-center">Carregando...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Projeto -->
+<div class="modal fade" id="projectModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="projectModalTitle">
+                    <i class="bi bi-kanban"></i>
+                    Novo Projeto
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="projectForm">
+                    <input type="hidden" id="projectId" name="id">
+                    
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="projectTitle" class="form-label">Título do Projeto *</label>
+                            <input type="text" class="form-control" id="projectTitle" name="title" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="clientId" class="form-label">Cliente *</label>
+                            <select class="form-select" id="clientId" name="client_id" required>
+                                <option value="">Selecione um cliente</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="planning">Planejamento</option>
+                                <option value="in_progress">Em Progresso</option>
+                                <option value="review">Revisão</option>
+                                <option value="completed">Concluído</option>
+                                <option value="cancelled">Cancelado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="priority" class="form-label">Prioridade</label>
+                            <select class="form-select" id="priority" name="priority">
+                                <option value="low">Baixa</option>
+                                <option value="medium">Média</option>
+                                <option value="high">Alta</option>
+                                <option value="urgent">Urgente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="deadline" class="form-label">Prazo</label>
+                            <input type="date" class="form-control" id="deadline" name="deadline">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="value" class="form-label">Valor (R$)</label>
+                            <input type="number" class="form-control" id="value" name="value" step="0.01" min="0">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="progress" class="form-label">Progresso (%)</label>
+                            <input type="range" class="form-range" id="progress" name="progress" min="0" max="100" value="0">
+                            <div class="d-flex justify-content-between">
+                                <small>0%</small>
+                                <small id="progress-value">0%</small>
+                                <small>100%</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="tags" class="form-label">Tags (separadas por vírgula)</label>
+                            <input type="text" class="form-control" id="tags" name="tags" placeholder="web, design, marketing">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Observações</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveProject()">
+                    <i class="bi bi-check-circle"></i>
+                    Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.kanban-board {
+    min-height: 600px;
+}
+
+.kanban-column {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    min-height: 500px;
+}
+
+.kanban-header {
+    padding: 1rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.kanban-cards {
+    padding: 0.5rem;
+    min-height: 450px;
+}
+
+.kanban-card {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: move;
+    transition: all 0.3s ease;
+}
+
+.kanban-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+.kanban-card.dragging {
+    opacity: 0.5;
+}
+
+.kanban-card-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.kanban-card-client {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.kanban-card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+}
+
+.kanban-card-progress {
+    width: 100%;
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 2px;
+    margin: 0.5rem 0;
+}
+
+.kanban-card-progress-bar {
+    height: 100%;
+    background: #28a745;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.priority-low { border-left: 4px solid #28a745; }
+.priority-medium { border-left: 4px solid #ffc107; }
+.priority-high { border-left: 4px solid #fd7e14; }
+.priority-urgent { border-left: 4px solid #dc3545; }
+
+.drag-over {
+    background: #e3f2fd !important;
+    border: 2px dashed #2196f3;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let projects = [];
+let clients = [];
+let editingProjectId = null;
+let currentView = 'kanban';
+
+// Carregar dados iniciais
+async function loadInitialData() {
+    await Promise.all([
+        loadProjects(),
+        loadClients()
+    ]);
+}
+
+// Carregar projetos
+async function loadProjects() {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch('/api/projects/', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            projects = await response.json();
+            renderProjects();
+        } else if (response.status === 401) {
+            window.location.href = '/login';
+        } else {
+            showAlert('Erro ao carregar projetos', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao carregar projetos:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Carregar clientes
+async function loadClients() {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch('/api/clients/', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            clients = await response.json();
+            updateClientSelects();
+        }
+    } catch (error) {
+        console.error('Erro ao carregar clientes:', error);
+    }
+}
+
+// Atualizar selects de clientes
+function updateClientSelects() {
+    const clientSelect = document.getElementById('clientId');
+    const clientFilter = document.getElementById('clientFilter');
+    
+    const clientOptions = clients.map(client => 
+        `<option value="${client.id}">${client.name}</option>`
+    ).join('');
+    
+    clientSelect.innerHTML = '<option value="">Selecione um cliente</option>' + clientOptions;
+    clientFilter.innerHTML = '<option value="">Todos os clientes</option>' + clientOptions;
+}
+
+// Renderizar projetos
+function renderProjects() {
+    if (currentView === 'kanban') {
+        renderKanban();
+    } else {
+        renderList();
+    }
+}
+
+// Renderizar Kanban
+function renderKanban() {
+    const statuses = ['planning', 'in_progress', 'review', 'completed', 'cancelled'];
+    
+    statuses.forEach(status => {
+        const container = document.getElementById(`${status}-cards`);
+        const count = document.getElementById(`${status}-count`);
+        
+        const statusProjects = projects.filter(p => p.status === status);
+        count.textContent = statusProjects.length;
+        
+        container.innerHTML = statusProjects.map(project => createKanbanCard(project)).join('');
+    });
+    
+    // Adicionar drag and drop
+    addDragAndDrop();
+}
+
+// Criar card do Kanban
+function createKanbanCard(project) {
+    const client = clients.find(c => c.id === project.client_id);
+    const clientName = client ? client.name : 'Cliente não encontrado';
+    
+    const deadline = project.deadline ? new Date(project.deadline).toLocaleDateString('pt-BR') : 'Sem prazo';
+    const value = project.value ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(project.value) : '';
+    
+    return `
+        <div class="kanban-card priority-${project.priority}" draggable="true" data-project-id="${project.id}">
+            <div class="kanban-card-title">${project.title}</div>
+            <div class="kanban-card-client">
+                <i class="bi bi-building"></i> ${clientName}
+            </div>
+            ${project.progress > 0 ? `
+                <div class="kanban-card-progress">
+                    <div class="kanban-card-progress-bar" style="width: ${project.progress}%"></div>
+                </div>
+            ` : ''}
+            <div class="kanban-card-meta">
+                <span class="badge bg-${getPriorityColor(project.priority)}">${getPriorityText(project.priority)}</span>
+                <small><i class="bi bi-calendar"></i> ${deadline}</small>
+            </div>
+            ${value ? `<div class="text-end mt-2"><strong>${value}</strong></div>` : ''}
+            <div class="mt-2">
+                <button class="btn btn-sm btn-outline-primary" onclick="editProject('${project.id}')" title="Editar">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteProject('${project.id}')" title="Excluir">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Renderizar lista
+function renderList() {
+    const tbody = document.getElementById('projects-table-body');
+    
+    if (projects.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center">Nenhum projeto encontrado</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = projects.map(project => {
+        const client = clients.find(c => c.id === project.client_id);
+        const clientName = client ? client.name : 'Cliente não encontrado';
+        const deadline = project.deadline ? new Date(project.deadline).toLocaleDateString('pt-BR') : 'Sem prazo';
+        const value = project.value ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(project.value) : '-';
+        
+        return `
+            <tr>
+                <td>${project.title}</td>
+                <td>${clientName}</td>
+                <td><span class="badge bg-primary">${getStatusText(project.status)}</span></td>
+                <td><span class="badge bg-${getPriorityColor(project.priority)}">${getPriorityText(project.priority)}</span></td>
+                <td>${deadline}</td>
+                <td>${value}</td>
+                <td>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar" role="progressbar" style="width: ${project.progress}%" aria-valuenow="${project.progress}" aria-valuemin="0" aria-valuemax="100">
+                            ${project.progress}%
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="editProject('${project.id}')" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="deleteProject('${project.id}')" title="Excluir">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Adicionar drag and drop
+function addDragAndDrop() {
+    const cards = document.querySelectorAll('.kanban-card');
+    const columns = document.querySelectorAll('.kanban-cards');
+    
+    cards.forEach(card => {
+        card.addEventListener('dragstart', handleDragStart);
+        card.addEventListener('dragend', handleDragEnd);
+    });
+    
+    columns.forEach(column => {
+        column.addEventListener('dragover', handleDragOver);
+        column.addEventListener('drop', handleDrop);
+        column.addEventListener('dragenter', handleDragEnter);
+        column.addEventListener('dragleave', handleDragLeave);
+    });
+}
+
+// Handlers de drag and drop
+function handleDragStart(e) {
+    e.dataTransfer.setData('text/plain', e.target.dataset.projectId);
+    e.target.classList.add('dragging');
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+}
+
+function handleDragEnter(e) {
+    e.preventDefault();
+    e.target.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    e.target.classList.remove('drag-over');
+}
+
+async function handleDrop(e) {
+    e.preventDefault();
+    e.target.classList.remove('drag-over');
+    
+    const projectId = e.dataTransfer.getData('text/plain');
+    const newStatus = e.target.closest('.kanban-column').dataset.status;
+    
+    await updateProjectStatus(projectId, newStatus);
+}
+
+// Atualizar status do projeto
+async function updateProjectStatus(projectId, newStatus) {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`/api/projects/${projectId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        if (response.ok) {
+            // Atualizar projeto local
+            const project = projects.find(p => p.id === projectId);
+            if (project) {
+                project.status = newStatus;
+            }
+            renderKanban();
+            showAlert('Status do projeto atualizado!', 'success');
+        } else {
+            showAlert('Erro ao atualizar status', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar status:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Alternar visualização
+function toggleView() {
+    const kanbanView = document.getElementById('kanban-view');
+    const listView = document.getElementById('list-view');
+    const viewIcon = document.getElementById('view-icon');
+    const viewText = document.getElementById('view-text');
+    
+    if (currentView === 'kanban') {
+        currentView = 'list';
+        kanbanView.style.display = 'none';
+        listView.style.display = 'block';
+        viewIcon.className = 'bi bi-kanban';
+        viewText.textContent = 'Kanban';
+        renderList();
+    } else {
+        currentView = 'kanban';
+        kanbanView.style.display = 'block';
+        listView.style.display = 'none';
+        viewIcon.className = 'bi bi-list-ul';
+        viewText.textContent = 'Lista';
+        renderKanban();
+    }
+}
+
+// Abrir modal de projeto
+function openProjectModal(projectId = null) {
+    editingProjectId = projectId;
+    const modal = document.getElementById('projectModal');
+    const title = document.getElementById('projectModalTitle');
+    const form = document.getElementById('projectForm');
+    
+    form.reset();
+    
+    if (projectId) {
+        title.innerHTML = '<i class="bi bi-pencil"></i> Editar Projeto';
+        const project = projects.find(p => p.id === projectId);
+        if (project) {
+            document.getElementById('projectId').value = project.id;
+            document.getElementById('projectTitle').value = project.title;
+            document.getElementById('clientId').value = project.client_id;
+            document.getElementById('description').value = project.description || '';
+            document.getElementById('status').value = project.status;
+            document.getElementById('priority').value = project.priority;
+            document.getElementById('deadline').value = project.deadline || '';
+            document.getElementById('value').value = project.value || '';
+            document.getElementById('progress').value = project.progress || 0;
+            document.getElementById('progress-value').textContent = (project.progress || 0) + '%';
+            document.getElementById('tags').value = project.tags ? project.tags.join(', ') : '';
+            document.getElementById('notes').value = project.notes || '';
+        }
+    } else {
+        title.innerHTML = '<i class="bi bi-kanban"></i> Novo Projeto';
+    }
+}
+
+// Salvar projeto
+async function saveProject() {
+    const form = document.getElementById('projectForm');
+    const formData = new FormData(form);
+    
+    const projectData = {
+        title: formData.get('title'),
+        client_id: formData.get('client_id'),
+        description: formData.get('description') || null,
+        status: formData.get('status'),
+        priority: formData.get('priority'),
+        deadline: formData.get('deadline') || null,
+        value: formData.get('value') ? parseFloat(formData.get('value')) : null,
+        progress: parseInt(formData.get('progress')) || 0,
+        tags: formData.get('tags') ? formData.get('tags').split(',').map(t => t.trim()).filter(t => t) : [],
+        notes: formData.get('notes') || null
+    };
+    
+    try {
+        const token = localStorage.getItem('access_token');
+        const url = editingProjectId ? `/api/projects/${editingProjectId}` : '/api/projects/';
+        const method = editingProjectId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(projectData)
+        });
+        
+        if (response.ok) {
+            showAlert(editingProjectId ? 'Projeto atualizado com sucesso!' : 'Projeto criado com sucesso!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('projectModal')).hide();
+            loadProjects();
+        } else {
+            const error = await response.json();
+            showAlert(error.detail || 'Erro ao salvar projeto', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao salvar projeto:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Editar projeto
+function editProject(projectId) {
+    openProjectModal(projectId);
+    new bootstrap.Modal(document.getElementById('projectModal')).show();
+}
+
+// Deletar projeto
+async function deleteProject(projectId) {
+    if (!confirm('Tem certeza que deseja excluir este projeto?')) {
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`/api/projects/${projectId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            showAlert('Projeto excluído com sucesso!', 'success');
+            loadProjects();
+        } else {
+            const error = await response.json();
+            showAlert(error.detail || 'Erro ao excluir projeto', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao excluir projeto:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Funções auxiliares
+function getPriorityColor(priority) {
+    const colors = {
+        'low': 'success',
+        'medium': 'warning',
+        'high': 'danger',
+        'urgent': 'dark'
+    };
+    return colors[priority] || 'secondary';
+}
+
+function getPriorityText(priority) {
+    const texts = {
+        'low': 'Baixa',
+        'medium': 'Média',
+        'high': 'Alta',
+        'urgent': 'Urgente'
+    };
+    return texts[priority] || priority;
+}
+
+function getStatusText(status) {
+    const texts = {
+        'planning': 'Planejamento',
+        'in_progress': 'Em Progresso',
+        'review': 'Revisão',
+        'completed': 'Concluído',
+        'cancelled': 'Cancelado'
+    };
+    return texts[status] || status;
+}
+
+// Event listeners
+document.getElementById('progress').addEventListener('input', function() {
+    document.getElementById('progress-value').textContent = this.value + '%';
+});
+
+// Carregar dados quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    loadInitialData();
+});
+</script>
+{% endblock %}
+

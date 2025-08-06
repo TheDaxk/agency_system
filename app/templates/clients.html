@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes - Sistema de Gestão{% endblock %}
+{% block page_title %}Clientes{% endblock %}
+
+{% block page_actions %}
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#clientModal" onclick="openClientModal()">
+    <i class="bi bi-plus-circle"></i>
+    Novo Cliente
+</button>
+{% endblock %}
+
+{% block content %}
+<!-- Filtros -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" placeholder="Buscar clientes..." id="searchInput">
+        </div>
+    </div>
+    <div class="col-md-3">
+        <select class="form-select" id="statusFilter">
+            <option value="">Todos os status</option>
+            <option value="active">Ativo</option>
+            <option value="inactive">Inativo</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select class="form-select" id="cityFilter">
+            <option value="">Todas as cidades</option>
+        </select>
+    </div>
+</div>
+
+<!-- Lista de clientes -->
+<div class="card shadow">
+    <div class="card-header">
+        <h6 class="m-0 font-weight-bold text-primary">Lista de Clientes</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome</th>
+                        <th>Contato</th>
+                        <th>Cidade</th>
+                        <th>Telefone</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="clients-table-body">
+                    <tr>
+                        <td colspan="7" class="text-center">Carregando...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cliente -->
+<div class="modal fade" id="clientModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="clientModalTitle">
+                    <i class="bi bi-person-plus"></i>
+                    Novo Cliente
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="clientForm">
+                    <input type="hidden" id="clientId" name="id">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="clientName" class="form-label">Nome da Empresa *</label>
+                            <input type="text" class="form-control" id="clientName" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="contactName" class="form-label">Nome do Contato *</label>
+                            <input type="text" class="form-control" id="contactName" name="contact_name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="city" class="form-label">Cidade *</label>
+                            <input type="text" class="form-control" id="city" name="city" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">Telefone *</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="active">Ativo</option>
+                                <option value="inactive">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Observações</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Dados de Pagamento</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" placeholder="Banco" id="bank" name="bank">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" placeholder="Agência" id="agency" name="agency">
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" placeholder="Conta" id="account" name="account">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" placeholder="PIX" id="pix" name="pix">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveClient()">
+                    <i class="bi bi-check-circle"></i>
+                    Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let clients = [];
+let editingClientId = null;
+
+// Carregar clientes
+async function loadClients() {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch('/api/clients/', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            clients = await response.json();
+            renderClients(clients);
+            updateCityFilter();
+        } else if (response.status === 401) {
+            window.location.href = '/login';
+        } else {
+            showAlert('Erro ao carregar clientes', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao carregar clientes:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Renderizar tabela de clientes
+function renderClients(clientsToRender) {
+    const tbody = document.getElementById('clients-table-body');
+    
+    if (clientsToRender.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhum cliente encontrado</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = clientsToRender.map(client => `
+        <tr>
+            <td>${client.name}</td>
+            <td>${client.contact_name}</td>
+            <td>${client.city}</td>
+            <td>${client.phone}</td>
+            <td>${client.email || '-'}</td>
+            <td>
+                <span class="badge bg-${client.status === 'active' ? 'success' : 'secondary'}">
+                    ${client.status === 'active' ? 'Ativo' : 'Inativo'}
+                </span>
+            </td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" onclick="editClient('${client.id}')" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="deleteClient('${client.id}')" title="Excluir">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Atualizar filtro de cidades
+function updateCityFilter() {
+    const cities = [...new Set(clients.map(client => client.city))].sort();
+    const cityFilter = document.getElementById('cityFilter');
+    
+    cityFilter.innerHTML = '<option value="">Todas as cidades</option>' +
+        cities.map(city => `<option value="${city}">${city}</option>`).join('');
+}
+
+// Filtrar clientes
+function filterClients() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const cityFilter = document.getElementById('cityFilter').value;
+    
+    const filtered = clients.filter(client => {
+        const matchesSearch = !searchTerm || 
+            client.name.toLowerCase().includes(searchTerm) ||
+            client.contact_name.toLowerCase().includes(searchTerm) ||
+            client.phone.includes(searchTerm) ||
+            (client.email && client.email.toLowerCase().includes(searchTerm));
+        
+        const matchesStatus = !statusFilter || client.status === statusFilter;
+        const matchesCity = !cityFilter || client.city === cityFilter;
+        
+        return matchesSearch && matchesStatus && matchesCity;
+    });
+    
+    renderClients(filtered);
+}
+
+// Abrir modal de cliente
+function openClientModal(clientId = null) {
+    editingClientId = clientId;
+    const modal = document.getElementById('clientModal');
+    const title = document.getElementById('clientModalTitle');
+    const form = document.getElementById('clientForm');
+    
+    form.reset();
+    
+    if (clientId) {
+        title.innerHTML = '<i class="bi bi-pencil"></i> Editar Cliente';
+        const client = clients.find(c => c.id === clientId);
+        if (client) {
+            document.getElementById('clientId').value = client.id;
+            document.getElementById('clientName').value = client.name;
+            document.getElementById('contactName').value = client.contact_name;
+            document.getElementById('city').value = client.city;
+            document.getElementById('phone').value = client.phone;
+            document.getElementById('email').value = client.email || '';
+            document.getElementById('status').value = client.status;
+            document.getElementById('notes').value = client.notes || '';
+            
+            // Dados de pagamento
+            if (client.payment_data) {
+                document.getElementById('bank').value = client.payment_data.bank || '';
+                document.getElementById('agency').value = client.payment_data.agency || '';
+                document.getElementById('account').value = client.payment_data.account || '';
+                document.getElementById('pix').value = client.payment_data.pix || '';
+            }
+        }
+    } else {
+        title.innerHTML = '<i class="bi bi-person-plus"></i> Novo Cliente';
+    }
+}
+
+// Salvar cliente
+async function saveClient() {
+    const form = document.getElementById('clientForm');
+    const formData = new FormData(form);
+    
+    const clientData = {
+        name: formData.get('name'),
+        contact_name: formData.get('contact_name'),
+        city: formData.get('city'),
+        phone: formData.get('phone'),
+        email: formData.get('email') || null,
+        status: formData.get('status'),
+        notes: formData.get('notes') || null,
+        payment_data: {
+            bank: formData.get('bank') || null,
+            agency: formData.get('agency') || null,
+            account: formData.get('account') || null,
+            pix: formData.get('pix') || null
+        }
+    };
+    
+    try {
+        const token = localStorage.getItem('access_token');
+        const url = editingClientId ? `/api/clients/${editingClientId}` : '/api/clients/';
+        const method = editingClientId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(clientData)
+        });
+        
+        if (response.ok) {
+            showAlert(editingClientId ? 'Cliente atualizado com sucesso!' : 'Cliente criado com sucesso!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('clientModal')).hide();
+            loadClients();
+        } else {
+            const error = await response.json();
+            showAlert(error.detail || 'Erro ao salvar cliente', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao salvar cliente:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Editar cliente
+function editClient(clientId) {
+    openClientModal(clientId);
+    new bootstrap.Modal(document.getElementById('clientModal')).show();
+}
+
+// Deletar cliente
+async function deleteClient(clientId) {
+    if (!confirm('Tem certeza que deseja excluir este cliente?')) {
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`/api/clients/${clientId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (response.ok) {
+            showAlert('Cliente excluído com sucesso!', 'success');
+            loadClients();
+        } else {
+            const error = await response.json();
+            showAlert(error.detail || 'Erro ao excluir cliente', 'danger');
+        }
+    } catch (error) {
+        console.error('Erro ao excluir cliente:', error);
+        showAlert('Erro de conexão', 'danger');
+    }
+}
+
+// Event listeners
+document.getElementById('searchInput').addEventListener('input', filterClients);
+document.getElementById('statusFilter').addEventListener('change', filterClients);
+document.getElementById('cityFilter').addEventListener('change', filterClients);
+
+// Carregar dados quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    loadClients();
+});
+</script>
+{% endblock %}
+

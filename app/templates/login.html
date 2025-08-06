@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Gestão</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+            overflow: hidden;
+            max-width: 400px;
+            width: 100%;
+        }
+        .login-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .login-body {
+            padding: 2rem;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            width: 100%;
+            padding: 0.75rem;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="login-header">
+            <h3 class="mb-0">
+                <i class="bi bi-building me-2"></i>
+                AgênciaHub
+            </h3>
+            <p class="mb-0 mt-2 opacity-75">Sistema de Gestão</p>
+        </div>
+        
+        <div class="login-body">
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label for="email" class="form-label">
+                        <i class="bi bi-envelope me-1"></i>
+                        Email
+                    </label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="password" class="form-label">
+                        <i class="bi bi-lock me-1"></i>
+                        Senha
+                    </label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="remember">
+                    <label class="form-check-label" for="remember">
+                        Lembrar-me
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>
+                    Entrar
+                </button>
+            </form>
+            
+            <div class="text-center mt-3">
+                <small class="text-muted">
+                    Não tem uma conta? 
+                    <a href="#" onclick="showRegisterForm()" class="text-decoration-none">Registre-se</a>
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="modal fade" id="registerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-person-plus me-2"></i>
+                        Criar Conta
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="registerForm">
+                        <div class="mb-3">
+                            <label for="reg_name" class="form-label">Nome Completo</label>
+                            <input type="text" class="form-control" id="reg_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reg_email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="reg_email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reg_password" class="form-label">Senha</label>
+                            <input type="password" class="form-control" id="reg_password" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reg_role" class="form-label">Função</label>
+                            <select class="form-select" id="reg_role" name="role" required>
+                                <option value="operational">Operacional</option>
+                                <option value="manager">Gerente</option>
+                                <option value="financial">Financeiro</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="register()">Criar Conta</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const loginData = {
+                email: formData.get('email'),
+                password: formData.get('password')
+            };
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(loginData)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('refresh_token', data.refresh_token);
+                    window.location.href = '/dashboard';
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Erro ao fazer login', 'danger');
+                }
+            } catch (error) {
+                showAlert('Erro de conexão. Tente novamente.', 'danger');
+            }
+        });
+
+        // Register function
+        async function register() {
+            const form = document.getElementById('registerForm');
+            const formData = new FormData(form);
+            const registerData = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                password: formData.get('password'),
+                role: formData.get('role')
+            };
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(registerData)
+                });
+                
+                if (response.ok) {
+                    showAlert('Conta criada com sucesso! Faça login.', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
+                    form.reset();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Erro ao criar conta', 'danger');
+                }
+            } catch (error) {
+                showAlert('Erro de conexão. Tente novamente.', 'danger');
+            }
+        }
+
+        // Show register form
+        function showRegisterForm() {
+            new bootstrap.Modal(document.getElementById('registerModal')).show();
+        }
+
+        // Alert function
+        function showAlert(message, type = 'success') {
+            const existingAlert = document.querySelector('.alert');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+            
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        // Check if already logged in
+        if (localStorage.getItem('access_token')) {
+            window.location.href = '/dashboard';
+        }
+    </script>
+</body>
+</html>
+

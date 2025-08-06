@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestão - Agência Digital</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .welcome-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+            overflow: hidden;
+            max-width: 500px;
+            width: 100%;
+        }
+        .welcome-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        .welcome-body {
+            padding: 2rem;
+            text-align: center;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 0.75rem 2rem;
+            margin: 0.5rem;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        .feature-list {
+            text-align: left;
+            margin: 2rem 0;
+        }
+        .feature-list li {
+            margin: 0.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-card">
+        <div class="welcome-header">
+            <h1 class="mb-0">
+                <i class="bi bi-building me-2"></i>
+                AgênciaHub
+            </h1>
+            <p class="mb-0 mt-2 opacity-75">Sistema de Gestão para Agência Digital</p>
+        </div>
+        
+        <div class="welcome-body">
+            <h4 class="mb-4">Bem-vindo ao seu sistema de gestão!</h4>
+            
+            <p class="text-muted mb-4">
+                Gerencie clientes, projetos, finanças e relatórios de forma integrada e eficiente.
+            </p>
+            
+            <ul class="feature-list list-unstyled">
+                <li><i class="bi bi-check-circle text-success me-2"></i> Gestão completa de clientes</li>
+                <li><i class="bi bi-check-circle text-success me-2"></i> Controle de projetos com Kanban</li>
+                <li><i class="bi bi-check-circle text-success me-2"></i> Módulo financeiro integrado</li>
+                <li><i class="bi bi-check-circle text-success me-2"></i> Dashboard com métricas em tempo real</li>
+                <li><i class="bi bi-check-circle text-success me-2"></i> Geração de relatórios em PDF</li>
+                <li><i class="bi bi-check-circle text-success me-2"></i> Sistema de autenticação seguro</li>
+            </ul>
+            
+            <div class="mt-4">
+                <a href="/login" class="btn btn-primary">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>
+                    Fazer Login
+                </a>
+                <a href="/dashboard" class="btn btn-outline-primary">
+                    <i class="bi bi-speedometer2 me-1"></i>
+                    Ir para Dashboard
+                </a>
+            </div>
+            
+            <div class="mt-4">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Sistema desenvolvido com FastAPI + SQLModel + Bootstrap
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Verificar se já está logado
+        if (localStorage.getItem('access_token')) {
+            // Redirecionar para dashboard se já estiver logado
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
+

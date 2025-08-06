@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sistema de Gestão{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-outline-primary" onclick="refreshDashboard()">
+        <i class="bi bi-arrow-clockwise"></i>
+        Atualizar
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Métricas principais -->
+<div class="row mb-4" id="metrics-cards">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Receita Mensal
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="monthly-income">
+                            R$ 0,00
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-currency-dollar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Lucro Líquido
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="net-profit">
+                            R$ 0,00
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-graph-up fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Total de Clientes
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-clients">
+                            0
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-people fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Margem de Lucro
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="profit-margin">
+                            0%
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-percent fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos -->
+<div class="row mb-4">
+    <div class="col-xl-8 col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Resumo Financeiro (6 meses)</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-area">
+                    <canvas id="financialChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-lg-5">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Projetos por Status</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie pt-4 pb-2">
+                    <canvas id="projectsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Projetos recentes -->
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Projetos Recentes</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="recent-projects-table">
+                        <thead>
+                            <tr>
+                                <th>Projeto</th>
+                                <th>Cliente</th>
+                                <th>Status</th>
+                                <th>Prioridade</th>
+                                <th>Valor</th>
+                                <th>Data de Criação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-projects-body">
+                            <tr>
+                                <td colspan="6" class="text-center">Carregando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let financialChart, projectsChart;
+
+// Carregar dados do dashboard
+async function loadDashboardData() {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            window.location.href = '/login';
+            return;
+        }
+
+        // Carregar métricas
+        const metricsResponse = await fetch('/api/dashboard/metrics', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (metricsResponse.ok) {
+            const metrics = await metricsResponse.json();
+            updateMetrics(metrics);
+        }
+
+        // Carregar resumo financeiro
+        const financialResponse = await fetch('/api/dashboard/financial-summary', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (financialResponse.ok) {
+            const financialData = await financialResponse.json();
+            updateFinancialChart(financialData);
+        }
+
+        // Carregar projetos recentes
+        const projectsResponse = await fetch('/api/dashboard/recent-projects', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (projectsResponse.ok) {
+            const projects = await projectsResponse.json();
+            updateRecentProjects(projects);
+        }
+
+    } catch (error) {
+        console.error('Erro ao carregar dados do dashboard:', error);
+        showAlert('Erro ao carregar dados do dashboard', 'danger');
+    }
+}
+
+// Atualizar métricas
+function updateMetrics(metrics) {
+    document.getElementById('monthly-income').textContent = 
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(metrics.monthly_income || 0);
+    
+    document.getElementById('net-profit').textContent = 
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(metrics.net_profit || 0);
+    
+    document.getElementById('total-clients').textContent = metrics.total_clients || 0;
+    
+    document.getElementById('profit-margin').textContent = 
+        (metrics.profit_margin || 0).toFixed(1) + '%';
+
+    // Atualizar gráfico de projetos por status
+    if (metrics.projects_by_status) {
+        updateProjectsChart(metrics.projects_by_status);
+    }
+}
+
+// Atualizar gráfico financeiro
+function updateFinancialChart(data) {
+    const ctx = document.getElementById('financialChart').getContext('2d');
+    
+    if (financialChart) {
+        financialChart.destroy();
+    }
+    
+    financialChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(item => {
+                const [year, month] = item.month.split('-');
+                return new Date(year, month - 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+            }),
+            datasets: [{
+                label: 'Receitas',
+                data: data.map(item => item.income),
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }, {
+                label: 'Despesas',
+                data: data.map(item => item.expenses),
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                tension: 0.1
+            }, {
+                label: 'Lucro',
+                data: data.map(item => item.profit),
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat('pt-BR', { 
+                                style: 'currency', 
+                                currency: 'BRL',
+                                minimumFractionDigits: 0
+                            }).format(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Atualizar gráfico de projetos
+function updateProjectsChart(data) {
+    const ctx = document.getElementById('projectsChart').getContext('2d');
+    
+    if (projectsChart) {
+        projectsChart.destroy();
+    }
+    
+    const labels = Object.keys(data);
+    const values = Object.values(data);
+    
+    projectsChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: [
+                    '#4e73df',
+                    '#1cc88a',
+                    '#36b9cc',
+                    '#f6c23e',
+                    '#e74a3b'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+// Atualizar projetos recentes
+function updateRecentProjects(projects) {
+    const tbody = document.getElementById('recent-projects-body');
+    
+    if (projects.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum projeto encontrado</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = projects.map(project => `
+        <tr>
+            <td>${project.title}</td>
+            <td>Cliente ID: ${project.client_id}</td>
+            <td><span class="badge bg-primary">${project.status}</span></td>
+            <td><span class="badge bg-${getPriorityColor(project.priority)}">${project.priority}</span></td>
+            <td>${project.value ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(project.value) : '-'}</td>
+            <td>${new Date(project.created_at).toLocaleDateString('pt-BR')}</td>
+        </tr>
+    `).join('');
+}
+
+// Obter cor da prioridade
+function getPriorityColor(priority) {
+    const colors = {
+        'low': 'success',
+        'medium': 'warning',
+        'high': 'danger',
+        'urgent': 'dark'
+    };
+    return colors[priority] || 'secondary';
+}
+
+// Atualizar dashboard
+function refreshDashboard() {
+    loadDashboardData();
+    showAlert('Dashboard atualizado!', 'success');
+}
+
+// Carregar dados quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardData();
+});
+</script>
+{% endblock %}
+

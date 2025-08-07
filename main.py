@@ -53,7 +53,9 @@ app.add_middleware(
 
 # Configurar templates e arquivos estáticos
 templates = Jinja2Templates(directory="app/templates")
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+import os
+if os.path.exists("app/static"):
+    app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Importar e incluir routers após a criação da app
 from app.routers import auth, clients, projects, financial, dashboard, reports

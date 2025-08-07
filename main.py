@@ -23,9 +23,9 @@ from app.models.financial import FinancialEntry, EntryType
 from app.models.service import Service
 
 # Configuração do banco de dados
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-DATABASE_URL = os.getenv("DATABASE_URL")
+SUPABASE_URL = "https://omcushqikzcjnigvmugi.supabase.co"
+SUPABASE_KEY = "sb_secret_5jenHsdjI2a_BWQGsiPBsw_dpoqSV77"
+DATABASE_URL = "postgresql://postgres:Pg3Nk1jGppLGaVuz@db.omcushqikzcjnigvmugi.supabase.co:5432/postgres"
 
 if not DATABASE_URL:
     logger.error("DATABASE_URL não configurado!")

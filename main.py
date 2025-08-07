@@ -18,9 +18,9 @@ from app.models.financial import FinancialEntry, EntryType
 from app.models.service import Service
 
 # Configuração do banco de dados
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+SUPABASE_URL = os.getenv("https://omcushqikzcjnigvmugi.supabase.co")
+SUPABASE_KEY = os.getenv("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tY3VzaHFpa3pjam5pZ3ZtdWdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1MzM1OTEsImV4cCI6MjA3MDEwOTU5MX0.iE0Ns3l8fmQdrubidKw_f0wsxTAPeqdXZGLtLu8imkA")
+DATABASE_URL = os.getenv("postgresql://postgres:Hsvr0nERYnDfmO8t@db.omcushqikzcjnigvmugi.supabase.co:5432/postgres", "sqlite:///./test.db")
 
 engine = create_engine(DATABASE_URL)
 
